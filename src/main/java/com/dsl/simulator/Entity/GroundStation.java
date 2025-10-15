@@ -1,26 +1,31 @@
 package com.dsl.simulator.Entity;
 
 import jakarta.persistence.*;
-import lombok.*;
-import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "ground_stations")
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class GroundStation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "station_id", nullable = false, unique = true)
-    private String stationId;
+    @Column(name = "station_id", unique = true)
+    private String stationId;  // ✅ For frontend deploy endpoint
+
+    @Column(unique = true, nullable = false)
+    private String code;  // e.g., "KSC", "ESA"
 
     @Column(nullable = false)
-    private String name;
+    private String name;  // e.g., "NASA Kennedy Space Center"
 
     @Column(nullable = false)
     private Double latitude;
@@ -28,16 +33,14 @@ public class GroundStation {
     @Column(nullable = false)
     private Double longitude;
 
-    private Double elevation = 0.0;
+    private String country;
 
-    @Column(length = 50)
-    private String status = "ACTIVE";
+    @Column(name = "min_elevation")
+    private Double minElevation = 5.0;  // ✅ Minimum elevation angle for visibility (degrees)
 
-    @Column(name = "deployed_at", updatable = false)
-    private LocalDateTime deployedAt;
+    @Column(name = "max_range")
+    private Double maxRange = 2000.0;  // Maximum communication range (km)
 
-    @PrePersist
-    protected void onCreate() {
-        deployedAt = LocalDateTime.now();
-    }
+    @Column(nullable = false)
+    private Boolean active = true;
 }

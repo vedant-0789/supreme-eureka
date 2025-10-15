@@ -2,8 +2,10 @@ package com.dsl.simulator.controller;
 
 import com.dsl.simulator.Entity.*;
 import com.dsl.simulator.Repository.*;
+import com.dsl.simulator.Service.GroundStationService;
 import com.dsl.simulator.Service.MissionControlService;
 import com.dsl.simulator.Service.N2YOService;
+import com.dsl.simulator.dto.CommunicationLinkDTO;
 import com.dsl.simulator.dto.SatelliteInfoDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -159,4 +161,19 @@ public class FrontendApiController {
         SatelliteInfoDTO info = n2yoService.getSatelliteInfo(noradId);
         return ResponseEntity.ok(info);
     }
+    @Autowired
+    private GroundStationService groundStationService;
+
+    @GetMapping("/ground-stations")
+    public ResponseEntity<List<GroundStation>> getGroundStations() {
+        List<GroundStation> stations = groundStationService.getAllActiveStations();
+        return ResponseEntity.ok(stations);
+    }
+
+    @GetMapping("/communication-links")
+    public ResponseEntity<List<CommunicationLinkDTO>> getCommunicationLinks() {
+        List<CommunicationLinkDTO> links = groundStationService.calculateCommunicationLinks();
+        return ResponseEntity.ok(links);
+    }
+
 }
