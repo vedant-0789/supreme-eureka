@@ -2,7 +2,7 @@ package com.dsl.simulator.config;
 
 import org.orekit.data.DataContext;
 import org.orekit.data.DataProvidersManager;
-import org.orekit.data.DirectoryCrawler;
+import org.orekit.data.ZipJarCrawler;
 import org.springframework.context.annotation.Configuration;
 
 import jakarta.annotation.PostConstruct;
@@ -15,15 +15,17 @@ public class OrekitConfig {
     @PostConstruct
     public void initOrekit() {
         try {
-            URL resource = getClass().getClassLoader().getResource("orekit-data-main");
-            if (resource == null) {
-                throw new IllegalStateException("Orekit data directory not found in resources");
+            // This approach is robust for both file system and JAR execution
+            final URL orekitDataUrl = getClass().getClassLoader().getResource("orekit-data-main.zip");
+            if (orekitDataUrl == null) {
+                 throw new IllegalStateException("Orekit data zip not found in resources. Please ensure 'orekit-data-main.zip' is present.");
             }
-            File orekitData = new File(resource.toURI());
+            
             DataProvidersManager manager = DataContext.getDefault().getDataProvidersManager();
-            manager.addProvider(new DirectoryCrawler(orekitData));
+            manager.addProvider(new ZipJarCrawler(orekitDataUrl));
+
         } catch (Exception e) {
-            throw new RuntimeException("Failed to initialize Orekit data", e);
+            throw new RuntimeException("Failed to initialize Orekit data from zip", e);
         }
     }
 }
