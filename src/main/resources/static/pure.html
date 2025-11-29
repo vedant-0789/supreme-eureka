@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SatOpsDSL - Satellite Operations Command Center</title>
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.95/Build/Cesium/Cesium.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js"></script>
+
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.95/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+     <link
+            href="/app.css"
+            rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="cesiumContainer"></div>
+
+<div class="overlay header">
+    <div class="logo">SatOpsDSL</div>
+    <div class="status-bar">
+        <div class="status-item">
+            <div class="status-label">NETWORK STATUS</div>
+            <div class="status-value">
+                <div class="connection-status">
+                    <div class="status-indicator" id="connection-status"></div>
+                    <span id="network-status-text">ONLINE</span>
+                </div>
+            </div>
+        </div>
+        <div class="status-item">
+            <div class="status-label">ACTIVE SATELLITES</div>
+            <div class="status-value" id="active-satellites">0</div>
+        </div>
+        <div class="status-item">
+            <div class="status-label">SYSTEM TIME</div>
+            <div class="status-value" id="system-time">--:--:-- UTC</div>
+        </div>
+    </div>
+</div>
+
+<div class="overlay console-panel" id="console-panel">
+    <div class="panel-header">
+        <div class="panel-title">MISSION CONTROL CONSOLE</div>
+        <div class="panel-controls">
+            <button id="console-toggle" class="panel-toggle-btn" title="Toggle Console">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+            </button>
+        </div>
+    </div>
+    <div class="console-content" id="console-output">
+        <div class="console-line"><span class="prompt">satops></span> System initialized. Connecting to backend...</div>
+    </div>
+    <div class="command-input">
+        <span class="command-prefix">satops></span>
+        <input type="text" class="command-field" id="command-input" placeholder="Enter command..." autocomplete="off">
+    </div>
+</div>
+
+<div class="overlay info-panel">
+    <div class="info-card">
+        <div class="card-header">
+            <div class="card-title">ACTIVE SATELLITES</div>
+        </div>
+        <div class="card-content">
+            <ul class="satellite-list" id="satellite-list">
+                <li style="color: #aaa; padding: 20px; text-align: center;">No satellites deployed</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="info-card">
+        <div class="card-header">
+            <div class="card-title">COMMAND HISTORY</div>
+        </div>
+        <div class="card-content command-history" id="command-history">
+            <div style="color: #aaa; padding: 10px; text-align: center;">No commands yet</div>
+        </div>
+    </div>
+</div>
+
+<div class="notification" id="notification">Command executed successfully</div>
+<script src="/app1.js"
+        type="text/javascript"></script>
+
+</body>
+</html>

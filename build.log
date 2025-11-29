@@ -1,0 +1,53 @@
+﻿[INFO] Scanning for projects...
+[INFO] 
+[INFO] --------------------< com.dsl.simulator:satops-dsl >--------------------
+[INFO] Building satops-dsl 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.4.1:clean (default-clean) @ satops-dsl ---
+[INFO] Deleting C:\supreme\target
+[INFO] 
+[INFO] --- antlr4:4.13.1:antlr4 (default) @ satops-dsl ---
+[INFO] ANTLR 4: Processing source directory C:\supreme\src\main\antlr4
+[INFO] Processing grammar: com\dsl\simulator\SatOps.g4
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ satops-dsl ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 349 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ satops-dsl ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 85 source files with javac [debug release 21] to target\classes
+[WARNING] /C:/supreme/src/main/java/com/dsl/simulator/Entity/GroundStation.java:[39,20] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /C:/supreme/src/main/java/com/dsl/simulator/Entity/GroundStation.java:[42,20] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /C:/supreme/src/main/java/com/dsl/simulator/Entity/GroundStation.java:[45,21] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /C:/supreme/src/main/java/com/dsl/simulator/Entity/CommandHistory.java:[26,20] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /C:/supreme/src/main/java/com/dsl/simulator/Entity/Satellite.java:[39,20] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ satops-dsl ---
+[INFO] skip non existing resourceDirectory C:\supreme\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ satops-dsl ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 1 source file with javac [debug release 21] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ satops-dsl ---
+[INFO] Tests are skipped.
+[INFO] 
+[INFO] --- jar:3.4.2:jar (default-jar) @ satops-dsl ---
+[INFO] Building jar: C:\supreme\target\satops-dsl-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] --- spring-boot:3.2.5:repackage (repackage) @ satops-dsl ---
+[INFO] Replacing main artifact C:\supreme\target\satops-dsl-0.0.1-SNAPSHOT.jar with repackaged archive, adding nested dependencies in BOOT-INF/.
+[INFO] The original artifact has been renamed to C:\supreme\target\satops-dsl-0.0.1-SNAPSHOT.jar.original
+[INFO] 
+[INFO] --- install:3.1.4:install (default-install) @ satops-dsl ---
+[INFO] Installing C:\supreme\pom.xml to C:\Users\Vedant Bapuji Patil\.m2\repository\com\dsl\simulator\satops-dsl\0.0.1-SNAPSHOT\satops-dsl-0.0.1-SNAPSHOT.pom
+[INFO] Installing C:\supreme\target\satops-dsl-0.0.1-SNAPSHOT.jar to C:\Users\Vedant Bapuji Patil\.m2\repository\com\dsl\simulator\satops-dsl\0.0.1-SNAPSHOT\satops-dsl-0.0.1-SNAPSHOT.jar
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  26.719 s
+[INFO] Finished at: 2025-11-29T23:13:51+05:30
+[INFO] ------------------------------------------------------------------------

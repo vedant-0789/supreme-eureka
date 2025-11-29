@@ -1,0 +1,602 @@
+# SatOpsDSL — Enhanced `app.js` and `app.css`
+
+Below are two ready-to-paste files for your SatOpsDSL project. Copy `app.js` to your frontend JS file (replace existing) and `app.css` to your stylesheet. Both are tuned for the Earth-Orbit Visualization Mode (option B) and preserve your backend/DSL integrations.
+
+---
+
+## File: `app.js`
+
+```javascript
+// ============================================
+// SatOpsDSL - Enhanced app.js
+// Earth-Orbit Visualization Mode (ready to paste)
+// Requires Cesium 1.95 and satellite.js
+// ============================================
+
+// ============================================
+// API CONFIGURATION
+// ============================================
+const API_BASE = 'http://localhost:1302/api/frontend';
+const DSL_ENDPOINT = 'http://localhost:1302/dsl/run';
+
+// ============================================
+// CESIUM INITIALIZATION
+// ============================================
+Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIxYWZiNDJkNy0yZWEwLTQ5OWQtYjk0MS0xOThlMTIxMDg1YTgiLCJpZCI6MzMyOTY1LCJpYXQiOjE3NTU1MTcyNzR9.raBDIk08ACyJ5JbAiqca_PFRHh1MyGLi3Bqfej5sL9Q';
+
+const viewer = new Cesium.Viewer('cesiumContainer', {
+  animation: true,
+  baseLayerPicker: false,
+  fullscreenButton: false,
+  geocoder: false,
+  homeButton: true,
+  infoBox: true,
+  imageryProvider: new Cesium.OpenStreetMapImageryProvider({ url: 'https://a.tile.openstreetmap.org/' }),
+  sceneModePicker: false,
+  selectionIndicator: true,
+  timeline: true,
+  navigationHelpButton: false,
+  scene3DOnly: true,
+  terrainProvider: Cesium.createWorldTerrain(),
+  creditContainer: document.createElement('div')
+});
+
+// Scene visual tuning
+viewer.scene.globe.enableLighting = true;
+viewer.scene.globe.showGroundAtmosphere = true;
+viewer.scene.globe.depthTestAgainstTerrain = false;
+viewer.scene.backgroundColor = Cesium.Color.BLACK;
+viewer.clock.shouldAnimate = true;
+viewer.clock.multiplier = 1; // realtime
+
+// Skybox and starfield
+viewer.scene.skyBox = new Cesium.SkyBox({
+  sources: {
+    positiveX: 'https://cesium.com/downloads/cesiumjs/releases/1.95/Build/Cesium/Assets/Textures/SkyBox/tycho2t3_80_px.jpg',
+    negativeX: 'https://cesium.com/downloads/cesiumjs/releases/1.95/Build/Cesium/Assets/Textures/SkyBox/tycho2t3_80_mx.jpg',
+    positiveY: 'https://cesium.com/downloads/cesiumjs/releases/1.95/Build/Cesium/Assets/Textures/SkyBox/tycho2t3_80_py.jpg',
+    negativeY: 'https://cesium.com/downloads/cesiumjs/releases/1.95/Build/Cesium/Assets/Textures/SkyBox/tycho2t3_80_my.jpg',
+    positiveZ: 'https://cesium.com/downloads/cesiumjs/releases/1.95/Build/Cesium/Assets/Textures/SkyBox/tycho2t3_80_pz.jpg',
+    negativeZ: 'https://cesium.com/downloads/cesiumjs/releases/1.95/Build/Cesium/Assets/Textures/SkyBox/tycho2t3_80_mz.jpg'
+  }
+});
+
+// Enable Sun & Moon
+viewer.scene.sun = new Cesium.Sun();
+viewer.scene.moon = new Cesium.Moon();
+
+// Camera default view (wide Earth view)
+viewer.camera.setView({
+  destination: Cesium.Cartesian3.fromDegrees(0, 20, 25000000),
+  orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-60), roll: 0 }
+});
+
+// Small automatic Earth rotation for cinematic effect
+let lastTime = 0;
+viewer.scene.preRender.addEventListener(function(scene, time) {
+  if (!lastTime) { lastTime = time.secondsOfDay; return; }
+  const delta = time.secondsOfDay - lastTime;
+  lastTime = time.secondsOfDay;
+  const spinRate = 0.0015; // radians per second (very slow)
+  viewer.scene.camera.rotate(Cesium.Cartesian3.UNIT_Z, spinRate * delta);
+});
+
+// Post-process bloom (soft glow)
+try {
+  const bloom = viewer.scene.postProcessStages.bloom;
+  bloom.enabled = true;
+  bloom.uniforms.glowOnly = false;
+  bloom.uniforms.contrast = 128.0;
+  bloom.uniforms.brightness = -0.15;
+  bloom.uniforms.delta = 0.5;
+  bloom.uniforms.glowStrength = 0.7;
+  bloom.uniforms.radius = 0.8;
+} catch (e) {
+  console.warn('Bloom not available in this Cesium build');
+}
+
+// ============================================
+// DOM ELEMENTS
+// ============================================
+const commandInput = document.getElementById('command-input');
+const consoleOutput = document.getElementById('console-output');
+const satelliteList = document.getElementById('satellite-list');
+const commandHistory = document.getElementById('command-history');
+const systemTime = document.getElementById('system-time');
+const notification = document.getElementById('notification');
+const connectionStatus = document.getElementById('connection-status');
+const networkStatusText = document.getElementById('network-status-text');
+const activeSatellitesCount = document.getElementById('active-satellites');
+
+// ============================================
+// STATE
+// ============================================
+let satellites = [];
+let isTracking = false;
+
+// color map for categories
+const colorMap = {
+  SATELLITE: Cesium.Color.LIME,
+  DEBRIS: Cesium.Color.RED,
+  STATION: Cesium.Color.CYAN,
+  INDIAN: Cesium.Color.ORANGE
+};
+
+// ============================================
+// SATELLITE + ORBIT CREATION
+// ============================================
+function createSimpleSatellite(satellite) {
+  const satId = satellite.satelliteId || satellite.id;
+  return viewer.entities.add({
+    id: satId,
+    name: satellite.name,
+    position: Cesium.Cartesian3.fromDegrees(
+      satellite.longitude || 0,
+      satellite.latitude || 0,
+      (satellite.altitude || 400) * 1000
+    ),
+    point: {
+      pixelSize: 8,
+      color: Cesium.Color.YELLOW,
+      outlineColor: Cesium.Color.WHITE,
+      outlineWidth: 1
+    },
+    label: {
+      text: satId.toUpperCase(),
+      font: '12pt monospace',
+      style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+      outlineWidth: 2,
+      verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+      pixelOffset: new Cesium.Cartesian2(0, -12),
+      fillColor: Cesium.Color.YELLOW,
+      outlineColor: Cesium.Color.BLACK,
+      scaleByDistance: new Cesium.NearFarScalar(1.2e6, 1.0, 8.0e6, 0.0)
+    }
+  });
+}
+
+function createSatelliteEntityWithOrbit(satellite) {
+  const satId = satellite.satelliteId || satellite.id;
+  const existing = viewer.entities.getById(satId);
+  if (existing) viewer.entities.remove(existing);
+
+  const oldOrbit = viewer.entities.getById(satId + '_orbit');
+  if (oldOrbit) viewer.entities.remove(oldOrbit);
+
+  if (!satellite.tleLine1 || !satellite.tleLine2) {
+    console.warn('No TLE for', satId);
+    return createSimpleSatellite(satellite);
+  }
+
+  try {
+    const satrec = window.satellite.twoline2satrec(satellite.tleLine1, satellite.tleLine2);
+    if (!satrec) return createSimpleSatellite(satellite);
+
+    // Create realtime position callback using satellite.js
+    const positionProperty = new Cesium.CallbackProperty(function(time, result) {
+      const jsDate = Cesium.JulianDate.toDate(time);
+      const pv = window.satellite.propagate(satrec, jsDate);
+      if (pv.position && !pv.position.error) {
+        const gmst = window.satellite.gstime(jsDate);
+        const posGd = window.satellite.eciToGeodetic(pv.position, gmst);
+        const lon = posGd.longitude * (180 / Math.PI);
+        const lat = posGd.latitude * (180 / Math.PI);
+        const height = posGd.height * 1000; // meters
+        return Cesium.Cartesian3.fromDegrees(lon, lat, height, Cesium.Ellipsoid.WGS84, result);
+      }
+      return Cesium.Cartesian3.ZERO;
+    }, false);
+
+    // Compute orbit points for one orbital period (approx)
+    const orbitPositions = [];
+    const startDate = new Date();
+
+    // mean motion (no) from satrec: revolutions per minute? satellite.js stores rad/min? use satrec.no (rad/min)
+    // Fallback to sampling a minute grid if unavailable
+    let orbitalPeriodSec = 5400; // default 90 minutes
+    if (satrec.no && typeof satrec.no === 'number' && satrec.no > 0) {
+      const meanMotion = satrec.no; // radians per minute
+      orbitalPeriodSec = (2 * Math.PI / meanMotion) * 60; // seconds
+    }
+    const numPoints = 180;
+    for (let i = 0; i <= numPoints; i++) {
+      const tSec = (orbitalPeriodSec / numPoints) * i;
+      const date = new Date(startDate.getTime() + tSec * 1000);
+      const pv = window.satellite.propagate(satrec, date);
+      if (pv.position && !pv.position.error) {
+        const gmst = window.satellite.gstime(date);
+        const posGd = window.satellite.eciToGeodetic(pv.position, gmst);
+        const lon = posGd.longitude * (180 / Math.PI);
+        const lat = posGd.latitude * (180 / Math.PI);
+        const height = posGd.height * 1000;
+        orbitPositions.push(Cesium.Cartesian3.fromDegrees(lon, lat, height));
+      }
+    }
+
+    // Color selection
+    const category = (satellite.category || satellite.type || '').toString().toUpperCase();
+    const color = colorMap[category] || Cesium.Color.YELLOW;
+
+    if (orbitPositions.length > 6) {
+      viewer.entities.add({
+        id: satId + '_orbit',
+        name: satellite.name + ' orbit',
+        polyline: {
+          positions: orbitPositions,
+          width: 2.0,
+          material: new Cesium.PolylineGlowMaterialProperty({
+            glowPower: 0.15,
+            color: color.withAlpha(0.85)
+          }),
+          arcType: Cesium.ArcType.NONE,
+          clampToGround: false
+        }
+      });
+    }
+
+    // Satellite entity with billboard (glowing dot)
+    const entity = viewer.entities.add({
+      id: satId,
+      name: satellite.name,
+      position: positionProperty,
+      billboard: {
+        image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OC"' +
+                'aGVpZ2h0PSI0OCI+PGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iOCI' +
+                'gZmlsbD0iI2ZmZiIgZmlsbC1vcGFjaXR5PSIwLjgiLz48L3N2Zz4=', // small dot SVG
+        width: 18,
+        height: 18,
+        scaleByDistance: new Cesium.NearFarScalar(1.2e6, 1.0, 8.0e6, 0.25),
+        color: color,
+        heightReference: Cesium.HeightReference.NONE
+      },
+      label: {
+        text: satId.toUpperCase(),
+        font: '11pt monospace',
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+        outlineWidth: 2,
+        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+        pixelOffset: new Cesium.Cartesian2(0, -10),
+        fillColor: color,
+        outlineColor: Cesium.Color.BLACK,
+        scaleByDistance: new Cesium.NearFarScalar(1.2e6, 0.9, 8.0e6, 0.0),
+        showBackground: false
+      },
+      description: `
+        <div style="font-family: monospace; color: #00ffff; padding: 10px;">
+          <h3 style="margin:0 0 6px 0;">${satellite.name}</h3>
+          <p style="margin:4px 0;"><b>ID:</b> ${satId}</p>
+          <p style="margin:4px 0;"><b>NORAD:</b> ${satellite.noradId || '—'}</p>
+          <p style="margin:4px 0;"><b>Type:</b> ${satellite.type || '—'}</p>
+        </div>
+      `
+    });
+
+    return entity;
+
+  } catch (error) {
+    console.error('Error creating orbit for', satId, error);
+    return createSimpleSatellite(satellite);
+  }
+}
+
+// ============================================
+// GROUND STATIONS
+// ============================================
+async function loadGroundStations() {
+  try {
+    const response = await fetch(`${API_BASE}/ground-stations`);
+    const stations = await response.json();
+    stations.forEach(st => {
+      viewer.entities.add({
+        id: 'gs_' + st.code,
+        name: st.name,
+        position: Cesium.Cartesian3.fromDegrees(st.longitude, st.latitude, 0),
+        billboard: {
+          image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHBhdGggZmlsbD0iIzAwZmYwMCIgZD0iTTI0IDRsMTIgMTJoLTZ2MTZoLTEyVjE2aC02bDEyLTEyek0xMiAzNmgyNHY0SDEyeiIvPjwvc3ZnPg==',
+          width: 28,
+          height: 28
+        },
+        label: { text: st.code, font: '12pt monospace', fillColor: Cesium.Color.LIME }
+      });
+    });
+  } catch (e) {
+    console.error('Failed to load ground stations', e);
+  }
+}
+
+// ============================================
+// COMMUNICATION LINKS
+// ============================================
+async function updateCommunicationLinks() {
+  try {
+    const response = await fetch(`${API_BASE}/communication-links`);
+    const links = await response.json();
+
+    // Remove existing link entities only (keep sats and stations)
+    const toRemove = [];
+    viewer.entities.values.forEach(ent => {
+      if (ent.name && ent.name.toString().toLowerCase().includes('link')) {
+        toRemove.push(ent);
+      }
+    });
+    toRemove.forEach(ent => viewer.entities.remove(ent));
+
+    links.forEach(link => {
+      const sat = viewer.entities.getById(link.satelliteId);
+      const gs = viewer.entities.getById('gs_' + link.groundStationCode);
+      if (sat && gs) {
+        viewer.entities.add({
+          id: `link_${link.satelliteId}_${link.groundStationCode}`,
+          name: 'Comm Link',
+          polyline: {
+            positions: [
+              gs.position.getValue(Cesium.JulianDate.now()),
+              sat.position.getValue(Cesium.JulianDate.now())
+            ],
+            width: 2,
+            material: new Cesium.PolylineDashMaterialProperty({
+              color: Cesium.Color.fromCssColorString(link.linkColor || '#00ffff'),
+              gapColor: Cesium.Color.TRANSPARENT,
+              dashLength: 12
+            })
+          }
+        });
+      }
+    });
+
+  } catch (e) {
+    console.error('Failed to update communication links', e);
+  }
+}
+
+// ============================================
+// UI: Satellite List + Selection
+// ============================================
+function renderSatelliteList() {
+  satelliteList.innerHTML = '';
+  satellites.forEach((sat, idx) => {
+    const satId = sat.satelliteId || sat.id || ('sat' + idx);
+    const li = document.createElement('li');
+    li.className = 'satellite-item';
+    li.innerHTML = `\n      <div class="sat-name">${sat.name}</div>\n      <div class="sat-info">ID: ${satId} | NORAD: ${sat.noradId || '—'}</div>\n    `;
+    li.addEventListener('click', () => {
+      document.querySelectorAll('.satellite-item').forEach(i => i.classList.remove('active'));
+      li.classList.add('active');
+      selectSatellite(satId);
+      flyToSatellite(satId, 2.2);
+    });
+    satelliteList.appendChild(li);
+  });
+}
+
+function selectSatellite(satId) {
+  const entity = viewer.entities.getById(satId);
+  if (entity) viewer.trackedEntity = entity;
+}
+
+function flyToSatellite(satId, duration = 2.5) {
+  const entity = viewer.entities.getById(satId);
+  if (!entity) return;
+  viewer.flyTo(entity, {
+    duration: duration,
+    offset: new Cesium.HeadingPitchRange(Cesium.Math.toRadians(0), Cesium.Math.toRadians(-0.7), 600000)
+  }).then(() => {
+    isTracking = true;
+    showNotification(`Tracking ${satId}`);
+  });
+}
+
+// ============================================
+// BACKEND & LOADING
+// ============================================
+async function checkBackendHealth() {
+  try {
+    const r = await fetch(`${API_BASE}/health`);
+    const d = await r.json();
+    if (d.status === 'UP') {
+      connectionStatus.classList.remove('offline');
+      networkStatusText.textContent = 'ONLINE';
+      addConsoleOutput('✅ Backend connected');
+      return true;
+    }
+  } catch (e) {
+    connectionStatus.classList.add('offline');
+    networkStatusText.textContent = 'OFFLINE';
+    addConsoleOutput('❌ Backend offline');
+    return false;
+  }
+}
+
+async function loadSatellitesFromDB() {
+  try {
+    const res = await fetch(`${API_BASE}/satellites`);
+    const dbSatellites = await res.json();
+    satellites = dbSatellites;
+    activeSatellitesCount.textContent = satellites.length;
+    if (satellites.length === 0) {
+      satelliteList.innerHTML = '<li style="color:#aaa; padding:20px; text-align:center">No satellites deployed</li>';
+    } else {
+      renderSatelliteList();
+      satellites.forEach(sat => createSatelliteEntityWithOrbit(sat));
+    }
+  } catch (e) {
+    addConsoleOutput('❌ Error loading satellites: ' + e.message);
+  }
+}
+
+async function loadCommandHistory() {
+  try {
+    const res = await fetch(`${API_BASE}/command-history`);
+    const history = await res.json();
+    commandHistory.innerHTML = '';
+    history.slice(0,10).forEach(cmd => {
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      const time = new Date(cmd.executedAt).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+      item.innerHTML = `<span class="history-time">${time}</span><span class="history-command">${cmd.command}</span>`;
+      commandHistory.appendChild(item);
+    });
+  } catch (e) { console.error('Error loading history', e); }
+}
+
+// ============================================
+// DSL EXECUTION
+// ============================================
+async function executeCommand(dslCommand) {
+  addConsoleOutput(`<span class="prompt">satops></span> ${dslCommand}`);
+  try {
+    const r = await fetch(DSL_ENDPOINT, { method: 'POST', headers: {'Content-Type':'text/plain'}, body: dslCommand });
+    const result = await r.text();
+    result.split('\n').forEach(l => { if (l.trim()) addConsoleOutput(l); });
+    await loadSatellitesFromDB();
+    await loadCommandHistory();
+  } catch (e) { addConsoleOutput('❌ Error: ' + e.message); }
+}
+
+commandInput.addEventListener('keydown', async (e) => {
+  if (e.key === 'Enter') {
+    const text = commandInput.value.trim();
+    if (text) { await executeCommand(text); commandInput.value = ''; }
+  }
+});
+
+// ============================================
+// HELPER UI
+// ============================================
+function addConsoleOutput(text) {
+  const line = document.createElement('div');
+  line.className = 'console-line';
+  line.innerHTML = text;
+  consoleOutput.appendChild(line);
+  consoleOutput.scrollTop = consoleOutput.scrollHeight;
+}
+
+function showNotification(msg) {
+  notification.textContent = msg;
+  notification.classList.add('show');
+  setTimeout(() => notification.classList.remove('show'), 3000);
+}
+
+function updateSystemTime() {
+  const now = new Date();
+  systemTime.textContent = now.toUTCString().split(' ')[4] + ' UTC';
+}
+setInterval(updateSystemTime, 1000); updateSystemTime();
+
+// ============================================
+// Init
+// ============================================
+(async function init() {
+  addConsoleOutput('🚀 SatOpsDSL v2.0 - Earth Orbit Mode');
+  addConsoleOutput('📡 Connecting to backend...');
+  const connected = await checkBackendHealth();
+  if (connected) {
+    await loadSatellitesFromDB();
+    await loadCommandHistory();
+    await loadGroundStations();
+    await updateCommunicationLinks();
+    addConsoleOutput('✅ System ready. Use DSL commands.');
+  } else {
+    addConsoleOutput('⚠️ Backend offline, working in demo mode');
+  }
+})();
+
+// periodic updates
+setInterval(loadCommandHistory, 10000);
+setInterval(updateCommunicationLinks, 5000);
+
+```
+
+---
+
+## File: `app.css`
+
+```css
+/* ============================================
+   SatOpsDSL - Enhanced app.css
+   Paste over your existing CSS file (app.css)
+   ============================================ */
+
+* { margin:0; padding:0; box-sizing:border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+html, body { height:100%; }
+body { background:#000; color:#fff; overflow:hidden; }
+
+#cesiumContainer { position:absolute; inset:0; z-index:1; }
+
+/* Overlay base */
+.overlay { position:absolute; z-index:10; pointer-events:none; }
+.overlay > * { pointer-events:auto; }
+
+/* Header */
+.header { top:0; left:0; width:100%; padding:18px 36px; display:flex; justify-content:space-between; align-items:center; background:linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%); }
+.logo { font-size:28px; font-weight:700; background:linear-gradient(90deg,#00ffff,#0080ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-shadow:0 0 10px rgba(0,255,255,0.2); }
+.status-bar { display:flex; gap:28px; }
+.status-item { display:flex; flex-direction:column; align-items:center; }
+.status-label { font-size:12px; color:#aaa; margin-bottom:4px; }
+.status-value { font-size:16px; color:#00ffff; font-weight:700; }
+
+/* Console panel */
+.console-panel { left:20px; bottom:20px; width:520px; height:320px; background:rgba(6,12,20,0.9); border:1px solid rgba(0,255,255,0.12); border-radius:10px; box-shadow:0 8px 40px rgba(0,200,255,0.06); backdrop-filter:blur(8px); display:flex; flex-direction:column; overflow:hidden; transition:height 0.28s ease; }
+.panel-header { padding:12px 14px; background:rgba(0,10,20,0.85); border-bottom:1px solid rgba(0,255,255,0.06); display:flex; justify-content:space-between; align-items:center; }
+.panel-title { font-size:15px; color:#00ffff; font-weight:700; }
+.panel-toggle-btn { background:rgba(0,255,255,0.06); border:1px solid rgba(0,255,255,0.08); width:28px; height:28px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.console-panel.minimized { height:50px; }
+.console-content { flex:1; padding:14px; overflow-y:auto; font-family:'Courier New', monospace; font-size:13px; color:#bfffdc; }
+.console-line { padding:8px 12px; margin:6px 0; border-radius:6px; background:linear-gradient(150deg, rgba(0,0,0,0.25), rgba(0,0,0,0.12)); border-left:3px solid rgba(0,255,255,0.12); transition:transform 0.18s ease, box-shadow 0.18s ease; }
+.console-line:hover { transform:translateX(6px); box-shadow:0 8px 30px rgba(0,180,255,0.06); }
+.prompt { color:#00ffff; margin-right:6px; }
+.command-input { display:flex; padding:10px 14px; border-top:1px solid rgba(0,255,255,0.04); background:linear-gradient(180deg, rgba(0,10,20,0.9), rgba(0,0,0,0.65)); }
+.command-prefix { color:#00ffff; margin-right:8px; }
+.command-field { flex:1; background:transparent; border:none; outline:none; color:#bfffdc; font-family:'Courier New', monospace; font-size:13px; }
+
+/* Info panel */
+.info-panel { right:20px; top:110px; width:360px; display:flex; flex-direction:column; gap:14px; }
+.info-card { background:rgba(6,12,20,0.9); border:1px solid rgba(0,150,255,0.06); border-radius:10px; box-shadow:0 8px 30px rgba(0,120,255,0.04); padding:0; overflow:hidden; }
+.card-header { padding:12px 14px; background:linear-gradient(180deg, rgba(0,20,40,0.9), rgba(0,10,20,0.9)); border-bottom:1px solid rgba(0,150,255,0.04); }
+.card-title { font-size:15px; color:#0099ff; font-weight:700; }
+.card-content { padding:12px 14px; }
+
+.satellite-list { list-style:none; max-height:320px; overflow-y:auto; }
+.satellite-item { padding:10px; border-bottom:1px solid rgba(255,255,255,0.02); cursor:pointer; transition:all 0.25s ease; position:relative; }
+.satellite-item:hover { transform:translateX(6px); box-shadow:0 10px 30px rgba(0,160,255,0.03); }
+.satellite-item.active { background:linear-gradient(90deg, rgba(0,100,200,0.18), rgba(0,60,120,0.12)); border-left:4px solid #00ffff; animation: pulse 1.5s infinite; }
+.sat-name { font-weight:700; color:#00ffff; }
+.sat-info { font-size:12px; color:#aaa; }
+
+@keyframes pulse { 0%{ box-shadow:0 0 8px rgba(0,255,255,0.06);} 50%{ box-shadow:0 0 20px rgba(0,255,255,0.12);} 100%{ box-shadow:0 0 8px rgba(0,255,255,0.06);} }
+
+.command-history { max-height:200px; overflow-y:auto; }
+.history-item { padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.03); font-size:12px; color:#aaa; }
+.history-time { color:#0088ff; margin-right:10px; }
+.history-command { color:#bfffdc; }
+
+.notification { position:absolute; top:22px; left:50%; transform:translateX(-50%); background:linear-gradient(135deg,#00ffff,#0088ff); border-radius:6px; padding:8px 18px; color:#001; font-weight:800; z-index:100; opacity:0; transition:opacity 0.24s ease, transform 0.24s ease; }
+.notification.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* small helpers */
+.status-indicator { width:10px; height:10px; border-radius:50%; background:#00ff00; box-shadow:0 0 10px #00ff00; }
+.status-indicator.offline { background:#ff0000; box-shadow:0 0 10px #ff0000; }
+
+/* Tooltip */
+.tooltip { position:absolute; background:rgba(0,20,40,0.98); border:1px solid rgba(0,255,255,0.08); padding:6px 10px; border-radius:6px; color:#00ffff; font-size:12px; pointer-events:none; box-shadow:0 6px 24px rgba(0,160,255,0.06); }
+
+/* responsive tweaks */
+@media (max-width:900px) {
+  .console-panel { width: 420px; }
+  .info-panel { width: 300px; }
+}
+
+```
+
+---
+
+### Notes & Installation
+
+* Replace your current `app.js` with the `app.js` above and `app.css` with the `app.css` above.
+* Keep your HTML unchanged — it already includes the Cesium and Satellite.js script tags and the `cesiumContainer` div.
+* This version focuses on Earth/orbit visualization and keeps your DSL/backend integration intact.
+* If you want additional features (path trails, clustered grouping, debris heatmaps, live N2YO integration), tell me and I'll extend the JS further.
+
+---
+
+If you want, I can also export these two files as downloadable files or provide a Git patch. Which would you prefer?

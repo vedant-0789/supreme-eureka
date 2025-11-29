@@ -1,0 +1,666 @@
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #cesiumContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .overlay {
+            position: absolute;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .overlay > * {
+            pointer-events: auto;
+        }
+
+        .header {
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #00ffff, #0080ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 30px;
+        }
+
+        .status-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .status-label {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+
+        .status-value {
+            font-size: 16px;
+            color: #00ffff;
+            font-weight: 600;
+        }
+
+        .console-panel {
+            left: 20px;
+            bottom: 20px;
+            width: 500px;
+            height: 300px;
+            background: rgba(10, 20, 30, 0.9);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: height 0.3s ease-in-out;
+        }
+
+        .panel-header {
+            padding: 12px 15px;
+            background: rgba(0, 20, 40, 0.9);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .panel-title {
+            font-size: 16px;
+            color: #00ffff;
+            font-weight: 600;
+        }
+
+        .panel-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .panel-toggle-btn {
+            background: rgba(0, 255, 255, 0.2);
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: background 0.3s, transform 0.3s;
+        }
+
+        .panel-toggle-btn:hover {
+            background: rgba(0, 255, 255, 0.4);
+            transform: scale(1.1);
+        }
+
+        .panel-toggle-btn svg {
+            width: 16px;
+            height: 16px;
+            stroke: #00ffff;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .console-panel.minimized {
+            height: 45px;
+        }
+
+        .console-panel.minimized .console-content,
+        .console-panel.minimized .command-input {
+            display: none;
+        }
+
+        .console-panel.minimized .panel-toggle-btn svg {
+            transform: rotate(180deg);
+        }
+
+        .console-content {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #00ffaa;
+            line-height: 1.4;
+        }
+
+        .console-line {
+            margin-bottom: 5px;
+        }
+
+        .prompt {
+            color: #00ffff;
+        }
+
+        .command-input {
+            display: flex;
+            padding: 10px 15px;
+            border-top: 1px solid rgba(0, 255, 255, 0.2);
+            background: rgba(5, 15, 25, 0.9);
+        }
+
+        .command-prefix {
+            color: #00ffff;
+            margin-right: 8px;
+        }
+
+        .command-field {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #00ffaa;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .info-panel {
+            right: 20px;
+            top: 100px;
+            width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .info-card {
+            background: rgba(10, 20, 30, 0.9);
+            border: 1px solid rgba(0, 150, 255, 0.3);
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 150, 255, 0.2);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 12px 15px;
+            background: rgba(0, 30, 60, 0.9);
+            border-bottom: 1px solid rgba(0, 150, 255, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 16px;
+            color: #0080ff;
+            font-weight: 600;
+        }
+
+        .card-content {
+            padding: 15px;
+        }
+
+        .satellite-list {
+            list-style: none;
+        }
+
+        .satellite-item {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .satellite-item.active {
+            background: rgba(0, 100, 200, 0.3);
+            border-left: 3px solid #00ffff;
+        }
+
+        .satellite-item:hover {
+            background: rgba(0, 100, 200, 0.2);
+        }
+
+        .satellite-item:last-child {
+            border-bottom: none;
+        }
+
+        .sat-name {
+            font-weight: 600;
+            color: #00ffff;
+            margin-bottom: 5px;
+        }
+
+        .sat-info {
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .telemetry-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .telemetry-label {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+
+        .telemetry-value {
+            font-size: 16px;
+            color: #00ffaa;
+            font-weight: 600;
+        }
+
+        .command-history {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .history-time {
+            color: #0080ff;
+            margin-right: 10px;
+        }
+
+        .history-command {
+            color: #00ffaa;
+        }
+
+        .notification {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 30, 60, 0.9);
+            border: 1px solid rgba(0, 255, 255, 0.5);
+            border-radius: 4px;
+            padding: 10px 20px;
+            color: #00ffff;
+            font-weight: 600;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .notification.show {
+            opacity: 1;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00ff00;
+            box-shadow: 0 0 10px #00ff00;
+        }
+
+        .status-indicator.offline {
+            background: #ff0000;
+            box-shadow: 0 0 10px #ff0000;
+        }
+        /* Smooth transitions for all interactive elements */
+        * {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Better satellite list hover effects */
+        .satellite-item {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .satellite-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: linear-gradient(to bottom, transparent, #00ffff, transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .satellite-item:hover::before {
+            opacity: 1;
+        }
+
+        .satellite-item:hover {
+            background: rgba(0, 100, 200, 0.25);
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0, 255, 255, 0.2);
+        }
+
+        /* Smooth fade-in animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .info-card {
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        .console-panel {
+            animation: fadeInUp 0.5s ease-out 0.1s backwards;
+        }
+
+        /* Tooltip styles */
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 20, 40, 0.95);
+            border: 1px solid rgba(0, 255, 255, 0.5);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #00ffff;
+            pointer-events: none;
+            z-index: 1000;
+            white-space: nowrap;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+
+        /* Loading spinner */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-top-color: #00ffff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Enhanced solar system styling */
+        .planet-label {
+            font-size: 12px !important;
+            font-weight: bold;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .orbit-path {
+            transition: opacity 0.3s ease;
+        }
+
+        .orbit-path:hover {
+            opacity: 0.8;
+        }
+        /* ✅ Fixed height for Active Satellites card */
+#satellite-list {
+    max-height: 320px;  /* Shows ~4 satellites */
+    overflow-y: auto;
+}
+
+/* ✅ Beautiful custom scrollbar */
+#satellite-list::-webkit-scrollbar {
+    width: 10px;
+}
+
+#satellite-list::-webkit-scrollbar-track {
+    background: rgba(0, 20, 40, 0.5);
+    border-radius: 5px;
+    margin: 5px 0;
+}
+
+#satellite-list::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #00ffff, #0080ff);
+    border-radius: 5px;
+    border: 2px solid rgba(0, 20, 40, 0.5);
+}
+
+#satellite-list::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #00ffff, #00ccff);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+/* Firefox support */
+#satellite-list {
+    scrollbar-width: thin;
+    scrollbar-color: #00ffff rgba(0, 20, 40, 0.5);
+}
+/* Enhanced Satellite Info Card */
+.satellite-info-card {
+    background: linear-gradient(135deg, rgba(0, 20, 40, 0.95), rgba(0, 40, 80, 0.95));
+    border: 2px solid #00ffff;
+    border-radius: 15px;
+    padding: 20px;
+    font-family: 'Orbitron', monospace;
+    color: white;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+}
+
+.satellite-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #00ffff;
+    padding-bottom: 10px;
+}
+
+.satellite-header h3 {
+    margin: 0;
+    color: #00ffff;
+    font-size: 1.2em;
+}
+
+.satellite-badge {
+    background: linear-gradient(45deg, #00ff88, #00cccc);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+    color: black;
+}
+
+.satellite-details {
+    margin: 15px 0;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 8px 0;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+.detail-row .label {
+    color: #aaa;
+    font-weight: normal;
+}
+
+.detail-row .value {
+    color: #00ffff;
+    font-weight: bold;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.btn-track, .btn-info {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Orbitron', monospace;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-track {
+    background: linear-gradient(45deg, #00ff88, #00cccc);
+    color: black;
+}
+
+.btn-info {
+    background: linear-gradient(45deg, #0088ff, #00ccff);
+    color: white;
+}
+
+.btn-track:hover, .btn-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 255, 255, 0.4);
+}
+
+/* Enhanced Console Output */
+.console-line {
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.3);
+    border-left: 3px solid #00ffff;
+    transition: all 0.3s ease;
+}
+
+.console-line:hover {
+    background: rgba(0, 255, 255, 0.1);
+    transform: translateX(5px);
+}
+
+/* Enhanced Notification */
+#notification {
+    background: linear-gradient(135deg, #00ffff, #0088ff);
+    border: 1px solid #00ffff;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+    font-family: 'Orbitron', monospace;
+    font-weight: bold;
+}
+
+/* ============================================
+   SatOpsDSL - Enhanced app.css
+   Paste over your existing CSS file (app.css)
+   ============================================ */
+
+* { margin:0; padding:0; box-sizing:border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+html, body { height:100%; }
+body { background:#000; color:#fff; overflow:hidden; }
+
+#cesiumContainer { position:absolute; inset:0; z-index:1; }
+
+/* Overlay base */
+.overlay { position:absolute; z-index:10; pointer-events:none; }
+.overlay > * { pointer-events:auto; }
+
+/* Header */
+.header { top:0; left:0; width:100%; padding:18px 36px; display:flex; justify-content:space-between; align-items:center; background:linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%); }
+.logo { font-size:28px; font-weight:700; background:linear-gradient(90deg,#00ffff,#0080ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-shadow:0 0 10px rgba(0,255,255,0.2); }
+.status-bar { display:flex; gap:28px; }
+.status-item { display:flex; flex-direction:column; align-items:center; }
+.status-label { font-size:12px; color:#aaa; margin-bottom:4px; }
+.status-value { font-size:16px; color:#00ffff; font-weight:700; }
+
+/* Console panel */
+.console-panel { left:20px; bottom:20px; width:520px; height:320px; background:rgba(6,12,20,0.9); border:1px solid rgba(0,255,255,0.12); border-radius:10px; box-shadow:0 8px 40px rgba(0,200,255,0.06); backdrop-filter:blur(8px); display:flex; flex-direction:column; overflow:hidden; transition:height 0.28s ease; }
+.panel-header { padding:12px 14px; background:rgba(0,10,20,0.85); border-bottom:1px solid rgba(0,255,255,0.06); display:flex; justify-content:space-between; align-items:center; }
+.panel-title { font-size:15px; color:#00ffff; font-weight:700; }
+.panel-toggle-btn { background:rgba(0,255,255,0.06); border:1px solid rgba(0,255,255,0.08); width:28px; height:28px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.console-panel.minimized { height:50px; }
+.console-content { flex:1; padding:14px; overflow-y:auto; font-family:'Courier New', monospace; font-size:13px; color:#bfffdc; }
+.console-line { padding:8px 12px; margin:6px 0; border-radius:6px; background:linear-gradient(150deg, rgba(0,0,0,0.25), rgba(0,0,0,0.12)); border-left:3px solid rgba(0,255,255,0.12); transition:transform 0.18s ease, box-shadow 0.18s ease; }
+.console-line:hover { transform:translateX(6px); box-shadow:0 8px 30px rgba(0,180,255,0.06); }
+.prompt { color:#00ffff; margin-right:6px; }
+.command-input { display:flex; padding:10px 14px; border-top:1px solid rgba(0,255,255,0.04); background:linear-gradient(180deg, rgba(0,10,20,0.9), rgba(0,0,0,0.65)); }
+.command-prefix { color:#00ffff; margin-right:8px; }
+.command-field { flex:1; background:transparent; border:none; outline:none; color:#bfffdc; font-family:'Courier New', monospace; font-size:13px; }
+
+/* Info panel */
+.info-panel { right:20px; top:110px; width:360px; display:flex; flex-direction:column; gap:14px; }
+.info-card { background:rgba(6,12,20,0.9); border:1px solid rgba(0,150,255,0.06); border-radius:10px; box-shadow:0 8px 30px rgba(0,120,255,0.04); padding:0; overflow:hidden; }
+.card-header { padding:12px 14px; background:linear-gradient(180deg, rgba(0,20,40,0.9), rgba(0,10,20,0.9)); border-bottom:1px solid rgba(0,150,255,0.04); }
+.card-title { font-size:15px; color:#0099ff; font-weight:700; }
+.card-content { padding:12px 14px; }
+
+.satellite-list { list-style:none; max-height:320px; overflow-y:auto; }
+.satellite-item { padding:10px; border-bottom:1px solid rgba(255,255,255,0.02); cursor:pointer; transition:all 0.25s ease; position:relative; }
+.satellite-item:hover { transform:translateX(6px); box-shadow:0 10px 30px rgba(0,160,255,0.03); }
+.satellite-item.active { background:linear-gradient(90deg, rgba(0,100,200,0.18), rgba(0,60,120,0.12)); border-left:4px solid #00ffff; animation: pulse 1.5s infinite; }
+.sat-name { font-weight:700; color:#00ffff; }
+.sat-info { font-size:12px; color:#aaa; }
+
+@keyframes pulse { 0%{ box-shadow:0 0 8px rgba(0,255,255,0.06);} 50%{ box-shadow:0 0 20px rgba(0,255,255,0.12);} 100%{ box-shadow:0 0 8px rgba(0,255,255,0.06);} }
+
+.command-history { max-height:200px; overflow-y:auto; }
+.history-item { padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.03); font-size:12px; color:#aaa; }
+.history-time { color:#0088ff; margin-right:10px; }
+.history-command { color:#bfffdc; }
+
+.notification { position:absolute; top:22px; left:50%; transform:translateX(-50%); background:linear-gradient(135deg,#00ffff,#0088ff); border-radius:6px; padding:8px 18px; color:#001; font-weight:800; z-index:100; opacity:0; transition:opacity 0.24s ease, transform 0.24s ease; }
+.notification.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* small helpers */
+.status-indicator { width:10px; height:10px; border-radius:50%; background:#00ff00; box-shadow:0 0 10px #00ff00; }
+.status-indicator.offline { background:#ff0000; box-shadow:0 0 10px #ff0000; }
+
+/* Tooltip */
+.tooltip { position:absolute; background:rgba(0,20,40,0.98); border:1px solid rgba(0,255,255,0.08); padding:6px 10px; border-radius:6px; color:#00ffff; font-size:12px; pointer-events:none; box-shadow:0 6px 24px rgba(0,160,255,0.06); }
+
+/* responsive tweaks */
+@media (max-width:900px) {
+  .console-panel { width: 420px; }
+  .info-panel { width: 300px; }
+}
